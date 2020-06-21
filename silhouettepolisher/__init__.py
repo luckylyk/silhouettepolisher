@@ -9,8 +9,8 @@ _silhouette_polisher_window = None
 
 
 def launch():
+    global _silhouette_polisher_window
     if _silhouette_polisher_window is None:
-        global _silhouette_polisher_window
         main_window = omui.MQtUtil.mainWindow()
         parent = shiboken2.wrapInstance(long(main_window), QtWidgets.QWidget)
         _silhouette_polisher_window = SilhouettePolisherWindow(parent)
