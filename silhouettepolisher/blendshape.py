@@ -28,7 +28,7 @@ DISPLAY_MESH_SG = 'TMP_DISPLAY_COPY_LAMBERTSG'
 @selection_required
 def create_working_copy_on_selection():
     for transform in pm.ls(selection=True):
-        if mesh_have_working_copy(transform):
+        if mesh_has_working_copy(transform):
             continue
         if transform.hasAttr(WORKING_MESH_ATTR):
             continue
@@ -40,10 +40,10 @@ def create_working_copy_on_selection():
 
 def setup_working_copy(mesh, working_copy=None, display_copy=None):
     """
-    this method setup the working editing environment.
+    this function setup the working editing environment.
     the working copy and the display copy are temporary meshes used
     to make and previzualize the mesh edit.
-    if working_copy and display_copy are let as None, the method will duplicate
+    if working_copy and display_copy are let as None, the function will duplicate
     the specified one.
 
     the original mesh is hidden during the procedure (lodVisibility)
@@ -66,6 +66,7 @@ def setup_working_copy(mesh, working_copy=None, display_copy=None):
     original_mesh.lodVisibility.set(False)
     working_copy.rename(working_copy.name() + '_f' + str(pm.env.time))
     for shape in display_copy.getShapes():
+	ensure_node_disconnected(shape)
         shape.overrideEnabled.set(True)
         shape.overrideDisplayType.set(2)
 
@@ -108,7 +109,7 @@ def setup_working_copy(mesh, working_copy=None, display_copy=None):
 
 def setup_edit_target_working_copy(mesh, blendshape, target_index):
     '''
-    this method setup the working editing environment to edit an target.
+    this function setup the working editing environment to edit an target.
     To get a working copy of the mesh, it force the blendshape envelope to 1
     and the selected target to 1. To generate the display copy it set the
     target value to 0.0.
@@ -171,7 +172,7 @@ def delete_selected_working_copys():
 
 def delete_working_copy_on_mesh(mesh):
     '''
-    This method let the user cancel his work and delete current working copy
+    This function let the user cancel his work and delete current working copy
     '''
     original_mesh = pm.PyNode(mesh)
     working_meshes = [
@@ -195,7 +196,7 @@ def delete_working_copy_on_mesh(mesh):
 
 def get_working_copys_transparency():
     """
-    this method's querying the working shaders transparency
+    this function's querying the working shaders transparency
     """
     if not pm.objExists(WORKING_MESH_SHADER):
         return 0.0
@@ -207,7 +208,7 @@ def get_working_copys_transparency():
 
 def set_working_copys_transparency(value):
     """
-    this method's tweaking the working shaders to let user
+    this function's tweaking the working shaders to let user
     compare working mesh and original mesh
     """
     if not pm.objExists(WORKING_MESH_SHADER):
@@ -224,7 +225,7 @@ def set_working_copys_transparency(value):
 
 def get_corrective_blendshapes(mesh):
     """
-    this method return a list off all corrective blendshapes
+    this function return a list off all corrective blendshapes
     present in the history
     """
     original_mesh = pm.PyNode(mesh)
@@ -261,7 +262,7 @@ def create_blendshape_corrective_for_selected_working_copys(values=None):
 
 def create_blendshape_corrective_on_mesh(base, target, values=None):
     """
-    this method's creating a new corrective blendshape on a mesh and add the
+    this function's creating a new corrective blendshape on a mesh and add the
     first target
     """
     base = pm.PyNode(base)
@@ -283,9 +284,9 @@ def create_blendshape_corrective_on_mesh(base, target, values=None):
             blendshape=corrective_blendshape, target_index=0, values=values)
 
 
-def mesh_have_working_copy(mesh):
+def mesh_has_working_copy(mesh):
     '''
-    This method query if a working copy is currently in use
+    This function query if a working copy is currently in use
     it should never append
     '''
     return bool([
@@ -295,7 +296,7 @@ def mesh_have_working_copy(mesh):
 
 def add_target_on_corrective_blendshape(blendshape, target, base, values=None):
     '''
-    this is a simple method to add target on a blendshape
+    this is a simple function to add target on a blendshape
     '''
 
     corrective_blendshape = pm.PyNode(blendshape)
@@ -323,7 +324,7 @@ def add_target_on_corrective_blendshape(blendshape, target, base, values=None):
 
 def apply_edit_target_working_copy(working_copy):
     """
-    this method apply a target edit.
+    this function apply a target edit.
     To do that, it retrieve information about the setup from the working copy.
     Set the blendshapetarget to 0.0 and use the display copy to to calculate
     the relative target mesh.
@@ -366,7 +367,7 @@ def apply_selected_working_copys(values=None):
 
 def apply_working_copy(mesh, blendshape=None, values=None):
     '''
-    this method is let apply a working mesh on his main shape
+    this function is let apply a working mesh on his main shape
     it manage if a blendshape already exist or not.
     '''
     working_mesh = pm.PyNode(mesh)
@@ -406,7 +407,7 @@ def get_targets_list_from_selection():
 
 def get_targets_list_from_mesh(mesh):
     '''
-    this methode return a list tuple containing the blendshape corrective
+    this function return a list tuple containing the blendshape corrective
     connected and the target available per blendshapes
     '''
     mesh = pm.PyNode(mesh)
@@ -418,7 +419,7 @@ def get_targets_list_from_mesh(mesh):
 
 def set_target_relative(blendshape, target, base):
     """
-    the methode is setting the target relative to the base if a blendshape
+    the function is setting the target relative to the base if a blendshape
     exist to avoid double transformation when the target is applyied
     Thanks Carlo Giesa, this one is yours :)
     """
@@ -454,10 +455,23 @@ def set_target_relative(blendshape, target, base):
     pm.delete(intermediate.getParent())
 
 
+def ensure_node_disconnected(node):
+   """
+   This function clean all plug from a node
+   """
+   for inplug, outplug in node.listConnections(plugs=True, connections=True):
+       try:
+           outplug.disconnect(inplug)
+       # That the lazy way, if disconnection fail, that because inplug and outplug
+       # are reversed ...
+       except RuntimeError:
+           inplug.disconnect(outplug)
+
+
 def apply_animation_template_on_blendshape_target_weight(
         blendshape, target_index, values=None):
     """
-    this method will apply an animation on the blendshape target index given.
+    this function will apply an animation on the blendshape target index given.
     the value is an float array. It represent a value at frame.
     the array middle value is the value set at the current frame.
     """
