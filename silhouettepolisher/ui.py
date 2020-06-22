@@ -181,6 +181,8 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
         self._values = KEY_TEMPLATES[0]
 
         self._edit_mode = False
+        self._resize_mode = False
+        self._resize_reference = None
         self._edited_index = None
         self._edited_value = None
 
@@ -188,6 +190,7 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
         self._working_area = QtCore.QRect(-15, 0, 215, 100)
 
         self._mouse_clicked = False
+        self._mouse_right_clicked = False
         self._mouse_in_working_rect = False
         self._mouse_in_working_area = False
         self._mouse_index_hovered = None
@@ -207,22 +210,33 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
         return values
 
     def set_values(self, values):
-        assert len(values) == 11
+        # assert len(values) == self._lenght
         assert [v <= 1 or v >= 0 for v in values]
         self._values = values
         self.repaint()
 
+
     def mousePressEvent(self, event):
-        self._mouse_clicked = True
-        self.set_edit_mode(event.pos())
+        if event.button() == QtCore.Qt.LeftButton:
+            self._mouse_clicked = True
+            self.set_edit_mode(event.pos())
+        elif event.button() == QtCore.Qt.RightButton:
+            self._mouse_right_clicked = True
+            self._resize_mode = True
+            self._resize_reference = event.pos()
         self.repaint()
 
     def mouseReleaseEvent(self, event):
         if self._edit_mode:
             self._values = self.values()
-        self._mouse_clicked = False
-        self._edit_mode = False
-        self._edited_index = None
+        if event.button() == QtCore.Qt.LeftButton:
+            self._mouse_clicked = False
+            self._edit_mode = False
+            self._edited_index = None
+        elif event.button() == QtCore.Qt.RightButton:
+            self._mouse_right_clicked = False
+            self._resize_mode = False
+            self._resize_reference = None
         self.repaint()
 
     def leaveEvent(self, event):
@@ -237,10 +251,19 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
         if not self._working_area.contains(event.pos()):
             self._mouse_index_hovered = None
         else:
-            self._mouse_index_hovered = int(round(event.pos().x() / 20.0))
-
+            offset = self.point_offset
+            self._mouse_index_hovered = int(round(event.pos().x() / offset))
         if self._edit_mode:
             self._edited_value = self._get_edited_value(event.pos())
+        elif self._resize_mode:
+            if event.x() < (self._resize_reference.x() - 10):
+                self._resize_reference = event.pos()
+                if len(self._values) > 3:
+                    self._values = self._values[1:-1]
+            elif event.x() > (self._resize_reference.x() + 10):
+                self._values.insert(0, None)
+                self._values.append(None)
+                self._resize_reference = event.pos()
         self.repaint()
 
     def set_edit_mode(self, point):
@@ -256,7 +279,7 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
             self._edited_index = self._mouse_index_hovered
             return
 
-        left = self._mouse_index_hovered * 20
+        left = self._mouse_index_hovered * self.point_offset
         height = 70 * (1 - value) + 15
         near_rect = QtCore.QRect(left - 5, height - 5, left + 5, height + 5)
         if near_rect.contains(point):
@@ -285,15 +308,14 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
             brush = QtGui.QBrush(QtGui.QColor('white'))
             painter.setPen(pen)
             painter.setBrush(brush)
-            point = QtCore.QPoint(
-                self._mouse_index_hovered * 20,
-                70 * (1 - value) + 15)
-            painter.drawEllipse(point, 3, 3)
-        else:
-            point = QtCore.QPoint(
-                self._mouse_index_hovered * 20,
-                70 * (1 - value) + 15)
-            painter.drawEllipse(point, 3, 3)
+        point = QtCore.QPoint(
+            self._mouse_index_hovered * self.point_offset,
+            70 * (1 - value) + 15)
+        painter.drawEllipse(point, 3, 3)
+
+    @property
+    def point_offset(self):
+        return float(self.width()) / float(len(self._values) - 1)
 
     def _draw_grid(self, painter, rect):
         pen = QtGui.QPen(QtGui.QColor('#111111'))
@@ -305,8 +327,8 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
         pen = QtGui.QPen(QtGui.QColor('#323232'))
         painter.setPen(pen)
 
-        for i in range(10):
-            left = i * 20
+        for i in range(len(self._values) - 1):
+            left = i * self.point_offset
             painter.drawLine(
                 QtCore.QPoint(left, 2),
                 QtCore.QPoint(left, rect.height() -2))
@@ -331,7 +353,7 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
         points = self._get_points()
         lines = []
         values = self.values()
-        if not any([1 for f in values if f is not None]):
+        if not any(1 for f in values if f is not None):
             return lines
 
         if values[0] is None:
@@ -364,7 +386,7 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
         for index, value in enumerate(self.values()):
             if value is None:
                 continue
-            left = index * 20
+            left = index * self.point_offset
             height = 70 * (1 - value) + 15
             points.append(QtCore.QPoint(left, height))
         return points

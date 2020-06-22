@@ -117,7 +117,7 @@ def setup_edit_target_working_copy(mesh, blendshape, target_index):
     are set back.
 
     on the working mesh an attribute "is_a_target_edit" and the edited index
-    is stored as value. The blendshape message is connected to the 
+    is stored as value. The blendshape message is connected to the
     working copy message. This is useful for the applying procedure. To notify
     that's an target edit instead of a target creation, an know which
     blendshape target is modified.
@@ -461,11 +461,13 @@ def apply_animation_template_on_blendshape_target_weight(
     the value is an float array. It represent a value at frame.
     the array middle value is the value set at the current frame.
     """
-    if values is None or not any([1 for v in values if v is not None]):
+    if values is None or not any(1 for v in values if v is not None):
         return
 
     blendshape = pm.PyNode(blendshape)
-    frames = range(int(pm.env.time) - 5, int(pm.env.time) + 6)
+    startframe = int(pm.env.time - float(len(values) / 2) + .5)
+    endframe = int(pm.env.time + float(len(values) / 2) + .5)
+    frames = range(int(startframe), int(endframe))
     decimal = pm.env.time - int(pm.env.time)
     frames_values = {
         f + decimal: values[i] for i, f in enumerate(frames)
