@@ -66,7 +66,7 @@ def setup_working_copy(mesh, working_copy=None, display_copy=None):
     original_mesh.lodVisibility.set(False)
     working_copy.rename(working_copy.name() + '_f' + str(pm.env.time))
     for shape in display_copy.getShapes():
-	ensure_node_disconnected(shape)
+        ensure_node_disconnected(shape)
         shape.overrideEnabled.set(True)
         shape.overrideDisplayType.set(2)
 
@@ -487,7 +487,7 @@ def apply_animation_template_on_blendshape_target_weight(
         f + decimal: values[i] for i, f in enumerate(frames)
         if values[i] is not None}
 
-    for frame, value in frames_values.iteritems():
+    for frame, value in frames_values.items():
         pm.setKeyframe(
             blendshape.weight[target_index], time=frame, value=value,
             inTangentType='linear', outTangentType='linear')

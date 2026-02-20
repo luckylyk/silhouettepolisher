@@ -1,7 +1,13 @@
 
 import os
 from functools import partial
-from PySide2 import QtWidgets, QtGui, QtCore
+try:
+    from PySide2 import QtWidgets, QtGui, QtCore
+    from PySide2.QtWidgets import QAction
+except ImportError:
+    from PySide6 import QtWidgets, QtGui, QtCore
+    from PySide6.QtGui import QAction
+import maya.cmds as cmds
 
 from silhouettepolisher.blendshape import (
     create_working_copy_on_selection, delete_selected_working_copys,
@@ -152,7 +158,7 @@ class EditTargetMenu(QtWidgets.QMenu):
     def __init__(self, mesh, targets_per_blendshapes, parent=None):
         super(EditTargetMenu, self).__init__(parent)
         if targets_per_blendshapes is None:
-            action = QtWidgets.QAction('No blendshape available', parent)
+            action = QAction('No blendshape available', parent)
             action.setEnabled(False)
             self.addAction(action)
             return
@@ -160,7 +166,7 @@ class EditTargetMenu(QtWidgets.QMenu):
         for blendshape, targets in targets_per_blendshapes:
             menu = QtWidgets.QMenu(blendshape.name(), self)
             for index, target in enumerate(targets):
-                action = QtWidgets.QAction(target, parent)
+                action = QAction(target, parent)
                 action.triggered.connect(
                     partial(
                         setup_edit_target_working_copy,
@@ -211,7 +217,7 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
 
     def set_values(self, values):
         # assert len(values) == self._lenght
-        assert [v <= 1 or v >= 0 for v in values]
+        assert all(v <= 1 or v >= 0 for v in values if v is not None)
         self._values = values
         self.repaint()
 
@@ -288,7 +294,12 @@ class AnimationTemplateEditor(QtWidgets.QWidget):
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
-        painter.setRenderHint(QtGui.QPainter.HighQualityAntialiasing)
+
+        if cmds.about(apiVersion=True) > 2025000:
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        else:
+            painter.setRenderHint(QtGui.QPainter.HighQualityAntialiasing)
+
         rect = self.rect()
 
         self._draw_grid(painter, rect)

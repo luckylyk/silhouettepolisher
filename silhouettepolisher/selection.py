@@ -31,7 +31,7 @@ from maya import cmds
 def preserve_selection(func):
     '''
     this decorator save your maya selection before execute the
-    decorated function. And reselect it when it's executed. 
+    decorated function. And reselect it when it's executed.
     '''
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -74,8 +74,8 @@ def filter_selection(**ls_kwargs):
 
 def filter_transforms_by_children_types(*nodetypes):
     '''
-    this decorators remove from the current selection the transforms 
-    who not contains at least a specified nodetype shape. 
+    this decorators remove from the current selection the transforms
+    who not contains at least a specified nodetype shape.
     The shapes in selection are kept.
     '''
     def decorator(func):
